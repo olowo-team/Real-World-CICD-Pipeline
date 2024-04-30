@@ -1,28 +1,35 @@
 #!/bin/bash
-# Tomcat Server Installation
-sudo su
-amazon-linux-extras install tomcat8.5 -y
-systemctl enable tomcat
-systemctl start tomcat
+yum install java-1.8.0-openjdk.x86_64 wget -y   
+mkdir -p /opt/nexus/   
+mkdir -p /tmp/nexus/                           
+cd /tmp/nexus/
+NEXUSURL="https://download.sonatype.com/nexus/3/latest-unix.tar.gz"
+wget $NEXUSURL -O nexus.tar.gz
+EXTOUT=`tar xzvf nexus.tar.gz`
+NEXUSDIR=`echo $EXTOUT | cut -d '/' -f1`
+rm -rf /tmp/nexus/nexus.tar.gz
+rsync -avzh /tmp/nexus/ /opt/nexus/
+useradd nexus
+chown -R nexus.nexus /opt/nexus 
+cat <<EOT>> /etc/systemd/system/nexus.service
+[Unit]                                                                          
+Description=nexus service                                                       
+After=network.target                                                            
+                                                                  
+[Service]                                                                       
+Type=forking                                                                    
+LimitNOFILE=65536                                                               
+ExecStart=/opt/nexus/$NEXUSDIR/bin/nexus start                                  
+ExecStop=/opt/nexus/$NEXUSDIR/bin/nexus stop                                    
+User=nexus                                                                      
+Restart=on-abort                                                                
+                                                                  
+[Install]                                                                       
+WantedBy=multi-user.target                                                      
 
-# Provisioning Ansible Deployer Access
-useradd ansibleadmin
-echo ansibleadmin | passwd ansibleadmin --stdin
-sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-systemctl restart sshd
-echo "ansibleadmin ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+EOT
 
-# : <<'END'
-# # Tomcat Server Installation
-# sudo su
-# amazon-linux-extras install tomcat8.5 -y
-# systemctl enable tomcat
-# systemctl start tomcat
-
-# # Provisioning Ansible Deployer Access
-# useradd ansibleadmin
-# echo ansibleadmin | passwd ansibleadmin --stdin
-# sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-# systemctl restart sshd
-# echo "ansadmin ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-# END
+echo 'run_as_user="nexus"' > /opt/nexus/$NEXUSDIR/bin/nexus.rc
+systemctl daemon-reload
+systemctl start nexus
+systemctl enable nexus

@@ -1,76 +1,44 @@
-# Author: Technel © 2024
-# Ref: https://www.howtoforge.com/how-to-install-and-configure-nexus-repository-manager-on-ubuntu-20-04/
+#!/bin/bash
+sudo su
+yum update –y
+wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+amazon-linux-extras install epel -y
+amazon-linux-extras install java-openjdk11 -y
+yum install jenkins -y
+echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+systemctl enable jenkins
+systemctl start jenkins
 
-apt-get update -y
+# Installing Git
+yum install git -y
 
-apt-get install openjdk-8-jdk -y
+# Installing Ansible
+amazon-linux-extras install ansible2 -y
+yum install python-pip -y
+pip install boto3
 
-java -version
+# Provisioning Ansible Deployer Access
+useradd ansibleadmin
+echo ansibleadmin | passwd ansibleadmin --stdin
+sed -i "s/.*#host_key_checking = False/host_key_checking = False/g" /etc/ansible/ansible.cfg
+sed -i "s/.*#enable_plugins = host_list, virtualbox, yaml, constructed/enable_plugins = aws_ec2/g" /etc/ansible/ansible.cfg
+ansible-galaxy collection install amazon.aws
 
-useradd -M -d /opt/nexus -s /bin/bash -r nexus
+# Enable Password Authentication and Grant Sudo Privilege
+sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+systemctl restart sshd
+echo "ansibleadmin ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-echo "nexus ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/nexus
+# Apache Maven Installation/Config
+#sudo wget https://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo
+#sudo sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo
+#sudo yum install -y apache-maven
+#sudo yum install java-1.8.0-devel
 
-mkdir /opt/nexus
+#sudo /usr/sbin/alternatives --config java
+#sudo /usr/sbin/alternatives --config javac
 
-wget https://sonatype-download.global.ssl.fastly.net/repository/downloads-prod-group/3/nexus-3.29.2-02-unix.tar.gz
-
-tar xzf nexus-3.29.2-02-unix.tar.gz -C /opt/nexus --strip-components=1
-
-chown -R nexus:nexus /opt/nexus
-
-nano /opt/nexus/bin/nexus.vmoptions
-
-
-# Set Java max memory size and replaced "../sonatype-work" with "./sonatype-work":
--Xms1024m
--Xmx1024m
--XX:MaxDirectMemorySize=1024m
-
--XX:LogFile=./sonatype-work/nexus3/log/jvm.log
--XX:-OmitStackTraceInFastThrow
--Djava.net.preferIPv4Stack=true
--Dkaraf.home=.
--Dkaraf.base=.
--Dkaraf.etc=etc/karaf
--Djava.util.logging.config.file=/etc/karaf/java.util.logging.properties
--Dkaraf.data=./sonatype-work/nexus3
--Dkaraf.log=./sonatype-work/nexus3/log
--Djava.io.tmpdir=./sonatype-work/nexus3/tmp
-
-# Save and close the file then edit the nexus.rc file and define the run as user:
-
-nano /opt/nexus/bin/nexus.rc
-## run_as_user="nexus"
-
-sudo -u nexus /opt/nexus/bin/nexus start
-
-# ss -altnp | grep 8081
-
-# /opt/nexus/bin/nexus stop
-
-nano /etc/systemd/system/nexus.service
-# Add the following lines:
-
-[Unit]
-Description=nexus service
-After=network.target
-
-[Service]
-Type=forking
-LimitNOFILE=65536
-ExecStart=/opt/nexus/bin/nexus start
-ExecStop=/opt/nexus/bin/nexus stop
-User=nexus
-Restart=on-abort
-
-[Install]
-WantedBy=multi-user.target
-
-# Save and exit
-
-
-systemctl daemon-reload
-systemctl start nexus
-systemctl enable nexus
-systemctl status nexus
+# Use The Amazon Linux 2 AMI When Launching The Jenkins VM/EC2 Instance
+# Instance Type: t2.medium or small minimum
+# Open Port (Security Group): 8080 

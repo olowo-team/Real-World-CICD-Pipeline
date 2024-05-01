@@ -33,3 +33,20 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
       - targets: ['10.0.0.x:9090']
+
+  *****************************************
+  *****************************************
+
+  global:
+  scrape_interval: 15s
+  external_labels:
+    monitor: 'prometheus'
+
+scrape_configs:
+
+  - job_name: 'node_exporter'
+
+    static_configs:
+
+      - targets: ['18.219.214.162:9100']
+      - targets: ['7.4.5.6:9100']

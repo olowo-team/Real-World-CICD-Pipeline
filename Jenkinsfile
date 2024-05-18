@@ -5,7 +5,7 @@ pipeline {
     NEXUS_CREDENTIAL_ID = 'Nexus-Credential'
     //NEXUS_USER = "$NEXUS_CREDS_USR"
     //NEXUS_PASSWORD = "$Nexus-Token"
-    //NEXUS_URL = "44.204.17.207:8081"
+    //NEXUS_URL = "54.90.39.222:8081"
     //NEXUS_REPOSITORY = "maven_project"
     //NEXUS_REPO_ID    = "maven_project"
     //ARTVERSION = "${env.BUILD_ID}"
@@ -58,6 +58,25 @@ pipeline {
                 """
                 }
             }
+        }
+    }
+    stage("Nexus Artifact Uploader"){
+        steps{
+           nexusArtifactUploader(
+              nexusVersion: 'nexus3',
+              protocol: 'http',
+              nexusUrl: '54.90.39.222:8081',
+              groupId: 'webapp',
+              version: "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}",
+              repository: 'maven-project-releases',  //"${NEXUS_REPOSITORY}",
+              credentialsId: "${NEXUS_CREDENTIAL_ID}",
+              artifacts: [
+                  [artifactId: 'webapp',
+                  classifier: '',
+                  file: "${WORKSPACE}/webapp/target/webapp.war",
+                  type: 'war']
+              ]
+           )
         }
     }
   }

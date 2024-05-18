@@ -15,7 +15,7 @@ pipeline {
     jdk 'localJdk'
   }
   stages {
-    stage('Build') {
+    stage('Build Artifacts') {
       steps {
         sh 'mvn clean package'
       }
@@ -25,6 +25,16 @@ pipeline {
           archiveArtifacts artifacts: '**/*.war'
         }
       }
+    }
+    stage('Unit Test'){
+        steps {
+            sh 'mvn test'
+        }
+    }
+    stage('Integration Test'){
+        steps {
+          sh 'mvn verify -DskipUnitTests'
+        }
     }
   }
 }    

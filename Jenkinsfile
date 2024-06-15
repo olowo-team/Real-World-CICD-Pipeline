@@ -84,8 +84,19 @@ pipeline {
             HOSTS = 'dev'
         }
         steps {
-                sh "ansible-playbook /var/lib/jenkins/workspace/real-world-cicd/dep.yaml"
+            withCredentials([usernamePassword(credentialsId: 'Ansible-Credential', passwordVariable: 'PASSWORD', usernameVariable: 'USER_NAME')]) {
+                sh "ansible-playbook -i ${WORKSPACE}/ansible-config/aws_ec2.yaml ${WORKSPACE}/deploy.yaml --extra-vars \"ansible_user=$USER_NAME ansible_password=$PASSWORD hosts=tag_Environment_$HOSTS workspace_path=$WORKSPACE\""
             }
         }
+    }
+      
+    // stage('Deploy to Development Env') {
+    //     environment {
+    //         HOSTS = 'dev'
+    //     }
+    //     steps {
+    //             sh "ansible-playbook -i ${WORKSPACE}/ansible-config/aws_ec2.yaml ${WORKSPACE}/deploy.yaml --extra-vars \"ansible_user=$USER_NAME ansible_password=$PASSWORD hosts=tag_Environment_$HOSTS workspace_path=$WORKSPACE\""
+    //         }
+    //     }
     }
   }

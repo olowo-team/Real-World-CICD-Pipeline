@@ -84,11 +84,8 @@ pipeline {
             HOSTS = 'dev'
         }
         steps {
-            withCredentials([usernamePassword(credentialsId: 'Ansible-Credential', passwordVariable: 'PASSWORD', usernameVariable: 'USER_NAME')]) {
-                sh "ansible-playbook ${WORKSPACE}/deploy.yaml --extra-vars \"ansible_user=$USER_NAME hosts=dev workspace_path=$WORKSPACE\""
-            //    sh "ansible-playbook deploy.yaml --extra-vars \"ansible_user=$USER_NAME ansible_password=$PASSWORD hosts=dev"
+                sh "ansible-playbook /var/lib/jenkins/workspace/real-world-cicd/dep.yaml"
             }
         }
     }
   }
-}    
